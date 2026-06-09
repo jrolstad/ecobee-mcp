@@ -222,8 +222,27 @@ async def test_runtime_report_passes_columns(mock_client):
     _ctor, instance = mock_client
     await server.get_runtime_report("abc", "2026-06-01", "2026-06-07", ["compHeat1"])
     instance.get_runtime_report.assert_awaited_once_with(
-        "abc", "2026-06-01", "2026-06-07", ["compHeat1"]
+        "abc", "2026-06-01", "2026-06-07", ["compHeat1"], include_sensors=False
     )
+
+
+async def test_runtime_report_passes_include_sensors(mock_client):
+    _ctor, instance = mock_client
+    await server.get_runtime_report(
+        "abc", "2026-06-01", "2026-06-07", ["zoneAveTemp"], include_sensors=True
+    )
+    instance.get_runtime_report.assert_awaited_once_with(
+        "abc", "2026-06-01", "2026-06-07", ["zoneAveTemp"], include_sensors=True
+    )
+
+
+async def test_runtime_report_cache_key_distinguishes_include_sensors(mock_client):
+    _ctor, instance = mock_client
+    await server.get_runtime_report("abc", "2026-06-01", "2026-06-07", ["compHeat1"])
+    await server.get_runtime_report(
+        "abc", "2026-06-01", "2026-06-07", ["compHeat1"], include_sensors=True
+    )
+    assert instance.get_runtime_report.await_count == 2
 
 
 async def test_runtime_report_uses_default_columns_when_none(mock_client):

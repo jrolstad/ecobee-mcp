@@ -278,6 +278,7 @@ async def get_runtime_report(
     start_date: str,
     end_date: str,
     columns: Optional[list[str]] = None,
+    include_sensors: bool = False,
 ) -> dict:
     """
     Historical 5-minute interval runtime data over a date range. This is the
@@ -297,6 +298,11 @@ async def get_runtime_report(
             temp). Common columns: `auxHeat1`, `compHeat1`, `compCool1`,
             `fan`, `zoneAveTemp`, `zoneHeatTemp`, `zoneCoolTemp`,
             `zoneHumidity`, `outdoorTemp`, `outdoorHumidity`.
+        include_sensors: if true, the response also populates `sensorList` with
+            per-sensor history (temperature, humidity, occupancy) for every
+            sensor on the thermostat — keyed by `<sensorId>:<capabilityIndex>`
+            (e.g. `rs2:101:1` is Liam's Room temperature). Use this to compare
+            individual room sensors against each other or the zone average.
     """
     cols = columns or [
         "auxHeat1",
@@ -309,13 +315,13 @@ async def get_runtime_report(
         "zoneHumidity",
         "outdoorTemp",
     ]
-    key = f"runtime:{thermostat_id}:{start_date}:{end_date}:{','.join(cols)}"
+    key = f"runtime:{thermostat_id}:{start_date}:{end_date}:{','.join(cols)}:s={include_sensors}"
     cached = _cache_get(key)
     if cached is not None:
         return cached
     from ecobee_client import EcobeeClient
     result = await EcobeeClient().get_runtime_report(
-        thermostat_id, start_date, end_date, cols
+        thermostat_id, start_date, end_date, cols, include_sensors=include_sensors
     )
     _cache_set(key, result)
     return result
