@@ -17,6 +17,10 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that w
 | `get_schedule` | Program schedule and comfort profiles (home/away/sleep) |
 | `get_alerts` | Active alerts (filter, maintenance, temperature) |
 | `get_house_details` | House characteristics (style, size, floors, occupants) |
+| `get_extended_runtime` | Last ~15 minutes of 5-minute interval runtime data (near real-time) |
+| `list_vacations` | All vacation events on the thermostat (past, current, future) |
+| `get_settings` | Full thermostat settings (HVAC config, eco+, smart home/away, ventilator, humidifier — ~116 fields) |
+| `get_demand_response` | Active/upcoming utility eco+ demand-response events |
 | `get_runtime_report` | Historical 5-minute runtime data over a date range (Ecobee retains ~18 months) |
 | `reset_cache` | Clear the in-process cache |
 

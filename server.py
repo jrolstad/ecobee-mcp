@@ -195,6 +195,84 @@ async def get_house_details(thermostat_id: Optional[str] = None) -> Optional[dic
 
 
 @mcp.tool()
+async def get_extended_runtime(thermostat_id: Optional[str] = None) -> Optional[dict]:
+    """
+    Near-real-time 5-minute interval runtime data — the last ~15 minutes.
+
+    Each numeric field returns three readings (the three most recent 5-min slots).
+    Equipment fields (`auxHeat1`, `compHeat1`, `compCool1`, `fan`, …) are seconds
+    of runtime in that slot (300 = ran the full slot). Temperatures
+    (`actualTemperature`, `desiredHeat`, `desiredCool`, `outdoorTemp`) are
+    tenths of a degree F. Updated every 15 minutes by the thermostat — for
+    longer history use `get_runtime_report`.
+
+    Args:
+        thermostat_id: identifier from `list_thermostats`. Omit for the first.
+    """
+    state = await _fetch_state()
+    t = _pick(state, thermostat_id)
+    if t is None:
+        return None
+    return t.get("extendedRuntime")
+
+
+@mcp.tool()
+async def list_vacations(thermostat_id: Optional[str] = None) -> list[dict]:
+    """
+    All vacation events scheduled on a thermostat (past, current, future).
+
+    Each entry includes `name`, `startDate`/`startTime`, `endDate`/`endTime`,
+    `heatHoldTemp`/`coolHoldTemp` (tenths of °F), and `running` (true if active
+    now). Empty list if there are no vacation events.
+
+    Args:
+        thermostat_id: identifier from `list_thermostats`. Omit for the first.
+    """
+    state = await _fetch_state()
+    t = _pick(state, thermostat_id)
+    if t is None:
+        return []
+    return [e for e in t.get("events", []) if e.get("type") == "vacation"]
+
+
+@mcp.tool()
+async def get_settings(thermostat_id: Optional[str] = None) -> Optional[dict]:
+    """
+    Full thermostat settings — HVAC config, comfort thresholds, eco+ options,
+    smart-home/away, ventilator schedules, humidifier settings, service
+    reminders, etc. ~116 fields total.
+
+    Args:
+        thermostat_id: identifier from `list_thermostats`. Omit for the first.
+    """
+    state = await _fetch_state()
+    t = _pick(state, thermostat_id)
+    if t is None:
+        return None
+    return t.get("settings")
+
+
+@mcp.tool()
+async def get_demand_response(thermostat_id: Optional[str] = None) -> list[dict]:
+    """
+    Active and upcoming demand-response (DR) events from your utility's eco+
+    program — temperature offsets, duty-cycle adjustments, and the time
+    window the utility wants you to participate in.
+
+    Returned as the subset of `events` with `type == "demandResponse"`. Empty
+    list if your account isn't enrolled or no DR event is scheduled.
+
+    Args:
+        thermostat_id: identifier from `list_thermostats`. Omit for the first.
+    """
+    state = await _fetch_state()
+    t = _pick(state, thermostat_id)
+    if t is None:
+        return []
+    return [e for e in t.get("events", []) if e.get("type") == "demandResponse"]
+
+
+@mcp.tool()
 async def get_runtime_report(
     thermostat_id: str,
     start_date: str,

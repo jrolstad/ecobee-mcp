@@ -35,7 +35,9 @@ THERMOSTATS = [
         "equipmentStatus": "fan",
         "events": [
             {"type": "hold", "running": True, "name": "h1"},
-            {"type": "vacation", "running": False, "name": "v1"},
+            {"type": "vacation", "running": False, "name": "v1", "startDate": "2026-07-01"},
+            {"type": "vacation", "running": True, "name": "v-now", "startDate": "2026-06-01"},
+            {"type": "demandResponse", "running": True, "name": "dr-active", "heatHoldTemp": 680},
         ],
         "remoteSensors": [
             {"id": "rs:100", "name": "Bedroom", "inUse": True}
@@ -44,6 +46,16 @@ THERMOSTATS = [
         "program": {"currentClimateRef": "home", "schedule": [["home"]]},
         "alerts": [{"alertNumber": 1, "alertText": "Filter"}],
         "houseDetails": {"style": "detached", "size": 2400},
+        "extendedRuntime": {
+            "runtimeInterval": 12,
+            "actualTemperature": [720, 721, 722],
+            "compHeat1": [120, 60, 0],
+        },
+        "settings": {
+            "hvacMode": "heat",
+            "fanMinOnTime": 5,
+            "lastServiceDate": "2024-01-15",
+        },
     },
     {
         "identifier": "xyz",
@@ -98,7 +110,7 @@ async def test_get_thermostat_status_defaults_to_first(mock_client):
     assert result["actualTemperatureTenthsF"] == 723
     assert result["hvacMode"] == "heat"
     assert result["activeHold"]["name"] == "h1"
-    assert result["activeVacation"] is None
+    assert result["activeVacation"]["name"] == "v-now"
     assert result["equipmentStatus"] == "fan"
 
 
@@ -138,6 +150,47 @@ async def test_get_alerts_returns_array(mock_client):
 
 async def test_get_house_details_returns_object(mock_client):
     assert await server.get_house_details() == {"style": "detached", "size": 2400}
+
+
+async def test_get_extended_runtime_returns_recent_intervals(mock_client):
+    result = await server.get_extended_runtime()
+    assert result["actualTemperature"] == [720, 721, 722]
+    assert result["compHeat1"] == [120, 60, 0]
+
+
+async def test_get_extended_runtime_unknown_returns_none(mock_client):
+    assert await server.get_extended_runtime("nonexistent") is None
+
+
+async def test_list_vacations_returns_only_vacation_events(mock_client):
+    result = await server.list_vacations()
+    assert [v["name"] for v in result] == ["v1", "v-now"]
+    assert all(e["type"] == "vacation" for e in result)
+
+
+async def test_list_vacations_returns_empty_when_no_vacations(mock_client):
+    assert await server.list_vacations("xyz") == []
+
+
+async def test_get_settings_returns_full_settings(mock_client):
+    result = await server.get_settings()
+    assert result["hvacMode"] == "heat"
+    assert result["fanMinOnTime"] == 5
+
+
+async def test_get_settings_unknown_returns_none(mock_client):
+    assert await server.get_settings("nonexistent") is None
+
+
+async def test_get_demand_response_returns_only_dr_events(mock_client):
+    result = await server.get_demand_response()
+    assert len(result) == 1
+    assert result[0]["name"] == "dr-active"
+    assert result[0]["type"] == "demandResponse"
+
+
+async def test_get_demand_response_empty_when_no_dr_events(mock_client):
+    assert await server.get_demand_response("xyz") == []
 
 
 async def test_state_cache_serves_repeat_calls(mock_client):
