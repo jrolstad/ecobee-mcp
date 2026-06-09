@@ -45,6 +45,14 @@ Ecobee uses OAuth 2.0. You need three things:
 
 Set `ECOBEE_CREDENTIALS_PATH` if the file lives somewhere other than `./credentials.json`.
 
+### Why credentials live in a file, not in env vars
+
+Ecobee's `refreshToken` **rotates** — every time the server refreshes the access token, the response includes a *new* refresh token that supersedes the old one. The server has to write that new pair back somewhere persistent or it'll lose access on the next restart.
+
+Environment variables (e.g. `~/.claude.json` `mcpServers.ecobee.env`) are read once at process start and never updated by the server, so they're the wrong home for rotating secrets. A JSON file that the server owns and rewrites in place is the right pattern. That's why the only thing in the MCP client config is `ECOBEE_CREDENTIALS_PATH` pointing at the real credential store.
+
+Static-credential services (e.g. a username/password that's re-used on every login) don't have this problem and can live entirely in env vars.
+
 The server keeps an in-process cache with a 5-minute TTL.
 
 ### Bootstrapping tokens
